@@ -15,7 +15,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_PATH = ROOT / "data" / "tmb_weather_analytics_2022_2025.json"
+DATA_PATH = ROOT / "data" / "tmb_weather_analytics_2022_2026.json"
+LEGACY_DATA_PATH = ROOT / "data" / "tmb_weather_analytics_2022_2025.json"
+HOURLY_CSV_PATH = ROOT / "data" / "tmb_open_meteo_hourly_2022_2026_available.csv"
 RAW_FORECAST_DIR = ROOT / "data" / "forecast"
 FORECAST_API = "https://api.open-meteo.com/v1/forecast"
 FORECAST_DOCS = "https://open-meteo.com/en/docs"
@@ -29,25 +31,38 @@ PAST_DAYS = 92
 HOURLY_VARS = [
     "temperature_2m",
     "relative_humidity_2m",
+    "dew_point_2m",
     "apparent_temperature",
     "precipitation",
     "rain",
     "snowfall",
+    "weather_code",
     "cloud_cover",
     "wind_speed_10m",
+    "wind_direction_10m",
     "wind_gusts_10m",
-    "weather_code",
+    "surface_pressure",
     "is_day",
 ]
 
 DAILY_VARS = [
+    "weather_code",
     "temperature_2m_max",
     "temperature_2m_min",
+    "temperature_2m_mean",
+    "apparent_temperature_max",
+    "apparent_temperature_min",
     "precipitation_sum",
     "rain_sum",
     "snowfall_sum",
     "precipitation_hours",
+    "sunshine_duration",
+    "relative_humidity_2m_mean",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "wind_speed_10m_max",
     "wind_gusts_10m_max",
+    "wind_direction_10m_dominant",
 ]
 
 
@@ -81,6 +96,11 @@ def fetch_point_forecast(point: dict) -> dict:
     return request_json(FORECAST_API, params)
 
 
+def load_dashboard_data() -> dict:
+    path = DATA_PATH if DATA_PATH.exists() else LEGACY_DATA_PATH
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def values(items: list[float | int | None]) -> list[float]:
     return [float(x) for x in items if isinstance(x, (int, float)) and not math.isnan(float(x))]
 
@@ -105,6 +125,104 @@ def month_day(date: str) -> str:
 
 def in_route_window(date: str) -> bool:
     return date.startswith(f"{ANALOG_YEAR}-") and ROUTE_START <= month_day(date) <= ROUTE_END
+
+
+def slim_forecast_payload(payload: dict) -> dict:
+    return {
+        "latitude": payload.get("latitude"),
+        "longitude": payload.get("longitude"),
+        "generationtime_ms": payload.get("generationtime_ms"),
+        "utc_offset_seconds": payload.get("utc_offset_seconds"),
+        "timezone": payload.get("timezone"),
+        "elevation": payload.get("elevation"),
+        "hourly_units": payload.get("hourly_units"),
+        "daily_units": payload.get("daily_units"),
+        "data_status": "observed_to_date_plus_7d_forecast",
+        "hourly": {"time": payload.get("hourly", {}).get("time", [])}
+        | {key: payload.get("hourly", {}).get(key, []) for key in HOURLY_VARS},
+        "daily": {"time": payload.get("daily", {}).get("time", [])}
+        | {key: payload.get("daily", {}).get(key, []) for key in DAILY_VARS},
+    }
+
+
+def summarize_point_year(point: dict, year: int, payload: dict) -> dict:
+    hourly = payload["hourly"]
+    daily = payload["daily"]
+    precip_days = values(daily.get("precipitation_sum", []))
+    temps = values(hourly.get("temperature_2m", []))
+    gusts = values(hourly.get("wind_gusts_10m", []))
+    wet_days = sum(1 for x in precip_days if x >= 1)
+    heavy_days = sum(1 for x in precip_days if x >= 10)
+    dry_days = sum(1 for x in precip_days if x < 1)
+    sunshine = total(daily.get("sunshine_duration", []))
+    return {
+        "point_id": point["id"],
+        "year": year,
+        "data_status": payload.get("data_status"),
+        "_hours": len(hourly.get("time", [])),
+        "_daily_dates": daily.get("time", []),
+        "mean_temp_c": mean(hourly.get("temperature_2m", [])),
+        "mean_apparent_temp_c": mean(hourly.get("apparent_temperature", [])),
+        "min_temp_c": round(min(temps), 2) if temps else None,
+        "max_temp_c": round(max(temps), 2) if temps else None,
+        "freeze_hours": sum(1 for x in temps if x <= 0),
+        "cold_hours_lt5": sum(1 for x in temps if x < 5),
+        "hot_hours_gt25": sum(1 for x in temps if x > 25),
+        "mean_humidity_pct": mean(hourly.get("relative_humidity_2m", [])),
+        "total_precip_mm": total(hourly.get("precipitation", [])),
+        "total_rain_mm": total(hourly.get("rain", [])),
+        "total_snow_cm": total(hourly.get("snowfall", [])),
+        "wet_hours": sum(1 for x in values(hourly.get("precipitation", [])) if x >= 0.1),
+        "wet_days": wet_days,
+        "heavy_precip_days": heavy_days,
+        "dry_days": dry_days,
+        "mean_wind_kmh": mean(hourly.get("wind_speed_10m", [])),
+        "max_gust_kmh": round(max(gusts), 2) if gusts else None,
+        "mean_cloud_pct": mean(hourly.get("cloud_cover", [])),
+        "sunshine_hours_total": round(sunshine / 3600, 1),
+    }
+
+
+def raw_risk(item: dict) -> float:
+    days = max(len(set(item.get("_daily_dates", []))), 1) if "_daily_dates" in item else 61
+    hours = max(item.get("_hours", 61 * 24), 1)
+    return (
+        item["wet_days"] / days * 35
+        + item["heavy_precip_days"] / days * 25
+        + item["cold_hours_lt5"] / hours * 20
+        + min((item["max_gust_kmh"] or 0) / 80, 1) * 15
+        + min(item["total_snow_cm"] / 20, 1) * 5
+    )
+
+
+def refresh_summaries(data: dict) -> None:
+    existing = [item for item in data.get("summaries", []) if item.get("year") != ANALOG_YEAR]
+    current = []
+    for point in data["points"]:
+        payload = data["series"][point["id"]][str(ANALOG_YEAR)]
+        summary = summarize_point_year(point, ANALOG_YEAR, payload)
+        summary["_raw_risk"] = raw_risk(summary)
+        current.append(summary)
+    if existing:
+        historical_raw = []
+        for item in existing:
+            clone = dict(item)
+            clone["_raw_risk"] = raw_risk(clone)
+            historical_raw.append(clone)
+        combined = historical_raw + current
+        low = min(item["_raw_risk"] for item in combined)
+        high = max(item["_raw_risk"] for item in combined)
+        spread = high - low or 1
+        for item in current:
+            item["hiking_weather_risk"] = round(100 * (item.pop("_raw_risk") - low) / spread, 1)
+            item.pop("_hours", None)
+            item.pop("_daily_dates", None)
+    else:
+        for item in current:
+            item.pop("_raw_risk", None)
+            item.pop("_hours", None)
+            item.pop("_daily_dates", None)
+    data["summaries"] = existing + current
 
 
 def point_day_features(point_id: str, point: dict, payload: dict) -> list[dict]:
@@ -195,7 +313,7 @@ def feature_loss(current: dict, historical: dict) -> float:
 
 
 def compare_analog_years(data: dict, latest_rows: list[dict], proxy_mode: bool = False) -> tuple[list[dict], dict]:
-    years = [int(year) for year in data["years"]]
+    years = [int(year) for year in data["years"] if int(year) < ANALOG_YEAR]
     points = {point["id"]: point for point in data["points"]}
     date_order = {date: index for index, date in enumerate(sorted({row["date"] for row in latest_rows}))}
     scored = []
@@ -325,16 +443,66 @@ def aggregate_route_future(rows: list[dict]) -> dict:
     }
 
 
+def flatten_csv(data: dict) -> str:
+    cols = [
+        "point_id",
+        "point_name",
+        "year",
+        "time",
+        "temperature_2m",
+        "relative_humidity_2m",
+        "dew_point_2m",
+        "apparent_temperature",
+        "precipitation",
+        "rain",
+        "snowfall",
+        "cloud_cover",
+        "wind_speed_10m",
+        "wind_direction_10m",
+        "wind_gusts_10m",
+        "surface_pressure",
+        "weather_code",
+        "is_day",
+    ]
+    rows = [",".join(cols)]
+    for point in data["points"]:
+        for year in data["years"]:
+            payload = data["series"].get(point["id"], {}).get(str(year))
+            if not payload:
+                continue
+            hourly = payload["hourly"]
+            for index, stamp in enumerate(hourly.get("time", [])):
+                rows.append(
+                    ",".join(
+                        [
+                            point["id"],
+                            '"' + point["name"].replace('"', '""') + '"',
+                            str(year),
+                            stamp,
+                            *[str(hourly.get(col, [None] * len(hourly.get("time", [])))[index]) for col in cols[4:]],
+                        ]
+                    )
+                )
+    return "\n".join(rows) + "\n"
+
+
 def build_updates(data: dict, point_payloads: dict[str, dict], generated_at: str) -> dict:
     all_rows = []
     future_rows = []
     per_point = {}
     for point in data["points"]:
-        rows = point_day_features(point["id"], point, point_payloads[point["id"]])
+        forecast_payload = slim_forecast_payload(point_payloads[point["id"]])
+        data["series"].setdefault(point["id"], {})[str(ANALOG_YEAR)] = forecast_payload
+        rows = point_day_features(point["id"], point, forecast_payload)
         all_rows.extend(rows)
         future = rows[-FORECAST_DAYS:]
         future_rows.extend(future)
         per_point[point["id"]] = {"daily": future}
+
+    if ANALOG_YEAR not in [int(year) for year in data.get("years", [])]:
+        data["years"].append(ANALOG_YEAR)
+    data["years"] = sorted(int(year) for year in data["years"])
+    refresh_summaries(data)
 
     latest_route_rows = [row for row in all_rows if in_route_window(row["date"])]
     proxy_mode = False
@@ -390,24 +558,33 @@ def build_updates(data: dict, point_payloads: dict[str, dict], generated_at: str
 
 
 def main() -> None:
-    data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    data = load_dashboard_data()
     RAW_FORECAST_DIR.mkdir(parents=True, exist_ok=True)
     generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     point_payloads = {}
 
     for index, point in enumerate(data["points"], start=1):
-        print(f"Fetching forecast {index:02d}/{len(data['points'])}: {point['name']}")
-        payload = fetch_point_forecast(point)
-        point_payloads[point["id"]] = payload
         cache_path = RAW_FORECAST_DIR / f"open_meteo_forecast_{point['id']}.json"
-        cache_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        time.sleep(0.25)
+        if cache_path.exists():
+            payload = json.loads(cache_path.read_text(encoding="utf-8"))
+            print(f"Using cached forecast {index:02d}/{len(data['points'])}: {point['name']}")
+        else:
+            print(f"Fetching forecast {index:02d}/{len(data['points'])}: {point['name']}")
+            payload = fetch_point_forecast(point)
+            cache_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            time.sleep(0.25)
+        point_payloads[point["id"]] = payload
 
     updates = build_updates(data, point_payloads, generated_at)
     data.update(updates)
     data.setdefault("metadata", {})["forecast_updated_at"] = generated_at
     data["metadata"]["forecast_source_docs"] = FORECAST_DOCS
+    data["metadata"]["current_year_note"] = (
+        "2026 hourly data is observed-to-date plus the latest 7-day forecast. "
+        "Full Jun-Jul 2026 historical data will only be available after the season."
+    )
     DATA_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    HOURLY_CSV_PATH.write_text(flatten_csv(data), encoding="utf-8")
 
     analog = updates["analog_reference"]
     top = ", ".join(f"{item['year']} {item['similarity']}/100" for item in analog["top"])

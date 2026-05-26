@@ -16,10 +16,10 @@ GitHub repo description: Interactive weather intelligence dashboard for Tour du 
 ## Data scope
 
 - Route: representative weather sampling points along the classic anti-clockwise TMB.
-- Periods: June 1 to July 31 for 2022, 2023, 2024, and 2025.
+- Periods: June 1 to July 31 for 2022, 2023, 2024, and 2025; 2026 is included as observed-to-date plus the latest 7-day forecast until the full season exists.
 - Sources: Open-Meteo Historical Weather API, `https://archive-api.open-meteo.com/v1/archive`, and Open-Meteo Forecast API, `https://api.open-meteo.com/v1/forecast`.
 - Variables: hourly temperature, apparent temperature, relative humidity, precipitation, rain, snowfall, cloud cover, wind speed, wind gusts, pressure, and weather code; plus daily aggregates.
-- Forecast layer: the published dashboard can refresh a 7-day forecast daily through GitHub Actions, then recommend a 2022-2025 analog reference year for the latest 2026 route-season signal.
+- Forecast layer: the published dashboard can refresh 2026 hourly forecast data daily through GitHub Actions, then recommend a 2022-2025 analog reference year for the latest 2026 route-season signal.
 
 The sampling points and kilometer markers are designed for weather analytics, not navigation. They approximate key microclimates such as valley towns, high passes, exposed ridges, and refuge basins.
 

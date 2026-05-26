@@ -17,6 +17,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 DASHBOARD_PATH = ROOT / "dashboard.html"
+PROCESSED_JSON = DATA_DIR / "tmb_weather_analytics_2022_2026.json"
+LEGACY_PROCESSED_JSON = DATA_DIR / "tmb_weather_analytics_2022_2025.json"
+HOURLY_CSV = DATA_DIR / "tmb_open_meteo_hourly_2022_2026_available.csv"
 
 API_URL = "https://archive-api.open-meteo.com/v1/archive"
 YEARS = [2022, 2023, 2024, 2025]
@@ -1049,7 +1052,7 @@ def build_html_modern(data: dict) -> str:
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="preconnect" href="https://basemaps.cartocdn.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="assets/dashboard.css?v=20260526-forecast-analog">
+  <link rel="stylesheet" href="assets/dashboard.css?v=20260526-2026-hourly">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -1186,7 +1189,7 @@ def build_html_modern(data: dict) -> str:
     </main>
   </div>
 
-  <script src="assets/dashboard.js?v=20260526-forecast-analog"></script>
+  <script src="assets/dashboard.js?v=20260526-2026-hourly"></script>
 </body>
 </html>
 """
@@ -1240,25 +1243,32 @@ def main() -> None:
         "weather_classes": derive_weather_classes(series_by_point),
         "series": series_by_point,
     }
-    existing_path = DATA_DIR / "tmb_weather_analytics_2022_2025.json"
+    existing_path = PROCESSED_JSON if PROCESSED_JSON.exists() else LEGACY_PROCESSED_JSON
     if existing_path.exists():
         existing = json.loads(existing_path.read_text(encoding="utf-8"))
         for key in ("forecast_7d", "analog_reference"):
             if key in existing:
                 data[key] = existing[key]
+        if "2026" in existing.get("series", {}).get(POINTS[0]["id"], {}):
+            if 2026 not in data["years"]:
+                data["years"].append(2026)
+            for point in POINTS:
+                data["series"][point["id"]]["2026"] = existing["series"][point["id"]]["2026"]
+            data["summaries"] = [item for item in data["summaries"] if item.get("year") != 2026]
+            data["summaries"].extend(item for item in existing.get("summaries", []) if item.get("year") == 2026)
         if existing.get("metadata", {}).get("forecast_updated_at"):
             data["metadata"]["forecast_updated_at"] = existing["metadata"]["forecast_updated_at"]
         if existing.get("metadata", {}).get("forecast_source_docs"):
             data["metadata"]["forecast_source_docs"] = existing["metadata"]["forecast_source_docs"]
-    (DATA_DIR / "tmb_open_meteo_hourly_2022_2025_jun_jul.csv").write_text(
-        flatten_csv(series_by_point), encoding="utf-8"
+    HOURLY_CSV.write_text(
+        flatten_csv(data["series"]), encoding="utf-8"
     )
-    (DATA_DIR / "tmb_weather_analytics_2022_2025.json").write_text(
+    PROCESSED_JSON.write_text(
         json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     DASHBOARD_PATH.write_text(build_html_modern(data), encoding="utf-8")
     print(f"Wrote {DASHBOARD_PATH}")
-    print(f"Wrote {DATA_DIR / 'tmb_weather_analytics_2022_2025.json'}")
+    print(f"Wrote {PROCESSED_JSON}")
 
 
 if __name__ == "__main__":

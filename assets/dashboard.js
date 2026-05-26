@@ -529,9 +529,15 @@ function parseDateInput(raw, fallback) {
   return candidate;
 }
 
+function routeBoundsForYear(year) {
+  const pointSeries = series[state.pointId]?.[String(year)] || series[points[0]?.id]?.[String(year)];
+  const dates = (pointSeries?.daily?.time || []).filter((date) => monthDay(date) >= "06-01" && monthDay(date) <= "07-31");
+  if (!dates.length) return [`${year}-06-01`, `${year}-07-31`];
+  return [dates[0], dates[dates.length - 1]];
+}
+
 function clampRange() {
-  const min = `${state.year}-06-01`;
-  const max = `${state.year}-07-31`;
+  const [min, max] = routeBoundsForYear(state.year);
   if (!state.startDate) state.startDate = min;
   if (!state.endDate) state.endDate = max;
   state.startDate = `${state.year}-${monthDay(state.startDate)}`;
@@ -1135,9 +1141,15 @@ async function loadDashboardData() {
   if (embedded && embedded.textContent.trim()) {
     return JSON.parse(embedded.textContent);
   }
-  const response = await fetch("data/tmb_weather_analytics_2022_2025.json");
-  if (!response.ok) throw new Error(`Failed to load dashboard data: ${response.status}`);
-  return response.json();
+  const paths = [
+    "data/tmb_weather_analytics_2022_2026.json",
+    "data/tmb_weather_analytics_2022_2025.json"
+  ];
+  for (const path of paths) {
+    const response = await fetch(path);
+    if (response.ok) return response.json();
+  }
+  throw new Error("Failed to load dashboard data");
 }
 
 async function initDashboard() {
