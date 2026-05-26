@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tour du Mont Blanc Weather Intelligence</title>
+  <link rel="preconnect" href="https://cdn.plot.ly">
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://basemaps.cartocdn.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="assets/dashboard.css?v=20260526-date-input">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="app-header">
+      <div>
+        <div class="eyebrow"><i data-lucide="compass"></i><span data-i18n="eyebrow">Outdoor Weather Intelligence</span></div>
+        <h1 data-i18n="title">Tour du Mont Blanc Weather Intelligence</h1>
+        <p data-i18n="subtitle">Hourly historical weather analytics for the classic TMB summer window, built for hikers planning timing, layers, rain strategy, and exposed-pass decisions.</p>
+      </div>
+      <div class="language-switch" role="group" aria-label="Language">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="fr">FR</button>
+        <button class="lang-btn" data-lang="it">IT</button>
+        <button class="lang-btn" data-lang="de">DE</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="control-panel" aria-label="Global controls">
+        <div class="control-title">
+          <i data-lucide="sliders-horizontal"></i>
+          <div>
+            <h2 data-i18n="controlTitle">Global route window</h2>
+            <p data-i18n="controlHint">Choose your hiking year and start/end dates. Every aggregate view below follows this range.</p>
+          </div>
+        </div>
+        <div class="controls-grid">
+          <label><span data-i18n="point">Waypoint</span><select id="pointSelect"></select></label>
+          <label><span data-i18n="year">Reference year</span><select id="yearSelect"></select></label>
+          <label><span data-i18n="startDate">Start date</span><input id="rangeStart" type="text" inputmode="numeric" autocomplete="off"></label>
+          <label><span data-i18n="endDate">End date</span><input id="rangeEnd" type="text" inputmode="numeric" autocomplete="off"></label>
+          <label><span data-i18n="heatMetric">Route metric</span><select id="heatMetric"></select></label>
+        </div>
+      </section>
+
+      <section class="kpi-grid" id="kpiGrid"></section>
+
+      <section class="dashboard-grid top-layout">
+        <article class="panel map-panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="routeMap">Route Map</h2><p data-i18n="routeMapHint">Hover for waypoint names; click a marker to inspect that microclimate.</p></div>
+          </div>
+          <div id="map"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="dailyWindow">Daily Weather Window</h2><p data-i18n="dailyHint">Temperature range, precipitation, and gusts inside the global date window.</p></div>
+          </div>
+          <div id="dailyChart" class="chart"></div>
+        </article>
+      </section>
+
+      <section class="dashboard-grid split-layout">
+        <article class="panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="intraday">Intraday Curve</h2><p data-i18n="intradayHint">Slide day by day through hourly temperature, humidity, precipitation, and gust exposure.</p></div>
+            <div class="date-chip" id="intradayDateLabel"></div>
+          </div>
+          <div class="slider-row">
+            <input id="dateSlider" type="range" min="0" max="0" value="0">
+          </div>
+          <div id="intradayChart" class="chart"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="diurnal">Diurnal Profile by Year</h2><p data-i18n="diurnalHint">Typical hourly pattern across the selected date window, compared by year.</p></div>
+          </div>
+          <div id="diurnalChart" class="chart"></div>
+        </article>
+      </section>
+
+      <section class="dashboard-grid split-layout">
+        <article class="panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="heatmap">Route Risk Heatmap</h2><p data-i18n="heatmapHint">Compare waypoints and years using the same global date window.</p></div>
+          </div>
+          <div id="heatmapChart" class="chart tall-chart"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="regimes">Hourly Weather Regimes</h2><p data-i18n="regimeHint">Aggregated hourly classes, split into daytime and nighttime.</p></div>
+          </div>
+          <div id="regimeChart" class="chart tall-chart"></div>
+        </article>
+      </section>
+
+      <section class="dashboard-grid split-layout">
+        <article class="panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="scatter">Temperature x Humidity</h2><p data-i18n="scatterHint">Hourly relationship; marker intensity reflects precipitation.</p></div>
+          </div>
+          <div id="scatterChart" class="chart"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div><h2 data-i18n="planning">Planning Signals</h2><p data-i18n="planningHint">Selected dates that deserve attention for dry windows, heavy rain, cold starts, or wind.</p></div>
+          </div>
+          <div class="table-wrap"><table id="planningTable"></table></div>
+        </article>
+      </section>
+
+      <section class="download-strip">
+        <div>
+          <h2 data-i18n="downloadTitle">Data export</h2>
+          <p data-i18n="downloadHint">Small utility export for the currently selected year and date range.</p>
+        </div>
+        <button id="downloadCsv"><i data-lucide="download"></i><span data-i18n="downloadCsv">Download CSV</span></button>
+      </section>
+
+      <p class="source-note"><span data-i18n="sourceNote">Data source: Open-Meteo Historical Weather API. Sampling points are weather-analysis approximations, not navigation-grade GPX points. Always check current mountain forecasts and local safety notices before hiking.</span> <a href="https://open-meteo.com/en/docs/historical-weather-api?locale=en">Open-Meteo docs</a></p>
+    </main>
+  </div>
+
+  <script src="assets/dashboard.js?v=20260526-date-input"></script>
+</body>
+</html>
