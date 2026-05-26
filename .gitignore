@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 data/open_meteo_*.json
+data/forecast/open_meteo_forecast_*.json

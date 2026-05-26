@@ -105,7 +105,7 @@ const I18N = {
     downloadTitle: "Data export",
     downloadHint: "Small utility export for the currently selected year and date range.",
     downloadCsv: "Download CSV",
-    sourceNote: "Data source: Open-Meteo Historical Weather API. Sampling points are weather-analysis approximations, not navigation-grade GPX points. Always check current mountain forecasts and local safety notices before hiking.",
+    sourceNote: "Data source: Open-Meteo Historical Weather and Forecast APIs. Sampling points are weather-analysis approximations, not navigation-grade GPX points. Always check current mountain forecasts and local safety notices before hiking.",
     temp: "Mean temp",
     precip: "Precipitation",
     wetDays: "Wet days",
@@ -129,7 +129,17 @@ const I18N = {
     signal: "Signal",
     date: "Date",
     sun: "Sun",
-    allWaypoints: "all waypoints"
+    allWaypoints: "all waypoints",
+    analogTitle: "Recommended reference year",
+    analogHint: "2026 latest route-season signal compared with historical reference years.",
+    top: "Top",
+    similarity: "similarity",
+    confidence: "Confidence",
+    forecast7d: "7-day forecast",
+    reason: "Reason",
+    caveat: "Caveat",
+    updated: "updated",
+    noForecast: "Forecast update pending"
   },
   zh: {
     eyebrow: "Outdoor Weather Intelligence",
@@ -161,7 +171,7 @@ const I18N = {
     downloadTitle: "数据导出",
     downloadHint: "轻量工具：导出当前年份和日期范围的数据。",
     downloadCsv: "下载 CSV",
-    sourceNote: "数据源：Open-Meteo Historical Weather API。采样点用于气象分析近似，不是导航级 GPX 点。出行前请务必查看最新山区预报和当地安全公告。",
+    sourceNote: "数据源：Open-Meteo Historical Weather API 与 Forecast API。采样点用于气象分析近似，不是导航级 GPX 点。出行前请务必查看最新山区预报和当地安全公告。",
     temp: "平均气温",
     precip: "降水量",
     wetDays: "湿天",
@@ -185,7 +195,17 @@ const I18N = {
     signal: "信号",
     date: "日期",
     sun: "日照",
-    allWaypoints: "所有点位"
+    allWaypoints: "所有点位",
+    analogTitle: "推荐参考年份",
+    analogHint: "将 2026 最新路线季节信号与历史参考年份进行相似度比较。",
+    top: "Top",
+    similarity: "相似度",
+    confidence: "置信度",
+    forecast7d: "7 日预报",
+    reason: "原因",
+    caveat: "注意",
+    updated: "更新",
+    noForecast: "预报数据待更新"
   },
   fr: {
     eyebrow: "Outdoor Weather Intelligence",
@@ -217,7 +237,7 @@ const I18N = {
     downloadTitle: "Export",
     downloadHint: "Export simple pour l'annee et la plage choisies.",
     downloadCsv: "Telecharger CSV",
-    sourceNote: "Source: Open-Meteo Historical Weather API. Les points sont des approximations analytiques, pas des points GPX de navigation.",
+    sourceNote: "Source: Open-Meteo Historical Weather API et Forecast API. Les points sont des approximations analytiques, pas des points GPX de navigation.",
     temp: "Temp. moyenne",
     precip: "Precipitation",
     wetDays: "Jours humides",
@@ -241,7 +261,17 @@ const I18N = {
     signal: "Signal",
     date: "Date",
     sun: "Soleil",
-    allWaypoints: "tous les points"
+    allWaypoints: "tous les points",
+    analogTitle: "Annee de reference conseillee",
+    analogHint: "Signal 2026 le plus recent compare aux annees historiques.",
+    top: "Top",
+    similarity: "similarite",
+    confidence: "Confiance",
+    forecast7d: "Prevision 7 jours",
+    reason: "Raison",
+    caveat: "Reserve",
+    updated: "mise a jour",
+    noForecast: "Prevision en attente"
   },
   it: {
     eyebrow: "Outdoor Weather Intelligence",
@@ -273,7 +303,7 @@ const I18N = {
     downloadTitle: "Export dati",
     downloadHint: "Export semplice per anno e intervallo selezionati.",
     downloadCsv: "Scarica CSV",
-    sourceNote: "Fonte: Open-Meteo Historical Weather API. I punti sono approssimazioni analitiche, non punti GPX di navigazione.",
+    sourceNote: "Fonte: Open-Meteo Historical Weather API e Forecast API. I punti sono approssimazioni analitiche, non punti GPX di navigazione.",
     temp: "Temp. media",
     precip: "Precipitazione",
     wetDays: "Giorni piovosi",
@@ -297,7 +327,17 @@ const I18N = {
     signal: "Segnale",
     date: "Data",
     sun: "Sole",
-    allWaypoints: "tutti i punti"
+    allWaypoints: "tutti i punti",
+    analogTitle: "Anno di riferimento consigliato",
+    analogHint: "Segnale 2026 piu recente confrontato con gli anni storici.",
+    top: "Top",
+    similarity: "similarita",
+    confidence: "Confidenza",
+    forecast7d: "Previsione 7 giorni",
+    reason: "Motivo",
+    caveat: "Nota",
+    updated: "aggiornato",
+    noForecast: "Previsione in attesa"
   },
   de: {
     eyebrow: "Outdoor Weather Intelligence",
@@ -329,7 +369,7 @@ const I18N = {
     downloadTitle: "Datenexport",
     downloadHint: "Einfacher Export fuer gewaehltes Jahr und Datum.",
     downloadCsv: "CSV herunterladen",
-    sourceNote: "Quelle: Open-Meteo Historical Weather API. Punkte sind analytische Naeherungen, keine GPX-Navigationspunkte.",
+    sourceNote: "Quelle: Open-Meteo Historical Weather API und Forecast API. Punkte sind analytische Naeherungen, keine GPX-Navigationspunkte.",
     temp: "Mittl. Temp.",
     precip: "Niederschlag",
     wetDays: "Nasse Tage",
@@ -353,7 +393,17 @@ const I18N = {
     signal: "Signal",
     date: "Datum",
     sun: "Sonne",
-    allWaypoints: "alle Punkte"
+    allWaypoints: "alle Punkte",
+    analogTitle: "Empfohlenes Referenzjahr",
+    analogHint: "Aktuelles 2026-Signal im Vergleich mit historischen Referenzjahren.",
+    top: "Top",
+    similarity: "Aehnlichkeit",
+    confidence: "Konfidenz",
+    forecast7d: "7-Tage-Prognose",
+    reason: "Grund",
+    caveat: "Hinweis",
+    updated: "aktualisiert",
+    noForecast: "Prognose ausstehend"
   }
 };
 
@@ -648,6 +698,45 @@ function renderKpis() {
     })
     .join("");
   if (window.lucide) window.lucide.createIcons();
+}
+
+function localizeConfidence(value) {
+  if (state.lang !== "zh") return value || "n/a";
+  return { Low: "低", Medium: "中", High: "高" }[value] || "n/a";
+}
+
+function renderAnalogRecommendation() {
+  const analog = DATA.analog_reference;
+  const forecast = DATA.forecast_7d;
+  if (!analog || !forecast) {
+    $("analogTopList").innerHTML = `<div class="analog-empty">${t("noForecast")}</div>`;
+    $("analogConfidence").textContent = "n/a";
+    $("forecastSummary").textContent = "n/a";
+    $("analogReason").textContent = t("noForecast");
+    $("analogCaveat").textContent = "";
+    return;
+  }
+
+  const top = (analog.top || []).slice(0, 2);
+  $("analogTopList").innerHTML = top
+    .map(
+      (item, index) => `
+        <div class="analog-rank">
+          <span>${t("top")} ${index + 1}</span>
+          <strong>${item.year}</strong>
+          <em>${t("similarity")} ${item.similarity}/100</em>
+        </div>`
+    )
+    .join("");
+
+  $("analogConfidence").textContent = localizeConfidence(analog.confidence);
+  const summary = forecast.route?.summary || {};
+  $("forecastSummary").textContent =
+    forecast.forecast_start && forecast.forecast_end
+      ? `${forecast.forecast_start.slice(5)}-${forecast.forecast_end.slice(5)} · ${fmt(summary.max_gust_kmh, " km/h", 0)} ${t("gust")}`
+      : "n/a";
+  $("analogReason").textContent = state.lang === "zh" ? analog.reason_zh || analog.reason : analog.reason;
+  $("analogCaveat").textContent = state.lang === "zh" ? analog.caveat_zh || analog.caveat : analog.caveat;
 }
 
 let map;
@@ -956,6 +1045,7 @@ function refreshAll(resetIntraday = true) {
   syncI18n();
   fillControls();
   syncSlider();
+  renderAnalogRecommendation();
   renderKpis();
   renderMap();
   renderDailyChart();

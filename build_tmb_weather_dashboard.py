@@ -1049,7 +1049,7 @@ def build_html_modern(data: dict) -> str:
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="preconnect" href="https://basemaps.cartocdn.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="assets/dashboard.css?v=20260526-date-input">
+  <link rel="stylesheet" href="assets/dashboard.css?v=20260526-forecast-analog">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -1072,21 +1072,40 @@ def build_html_modern(data: dict) -> str:
     </header>
 
     <main>
-      <section class="control-panel" aria-label="Global controls">
-        <div class="control-title">
-          <i data-lucide="sliders-horizontal"></i>
-          <div>
-            <h2 data-i18n="controlTitle">Global route window</h2>
-            <p data-i18n="controlHint">Choose your hiking year and start/end dates. Every aggregate view below follows this range.</p>
+      <section class="control-analog-layout">
+        <section class="control-panel" aria-label="Global controls">
+          <div class="control-title">
+            <i data-lucide="sliders-horizontal"></i>
+            <div>
+              <h2 data-i18n="controlTitle">Global route window</h2>
+              <p data-i18n="controlHint">Choose your hiking year and start/end dates. Every aggregate view below follows this range.</p>
+            </div>
           </div>
-        </div>
-        <div class="controls-grid">
-          <label><span data-i18n="point">Waypoint</span><select id="pointSelect"></select></label>
-          <label><span data-i18n="year">Reference year</span><select id="yearSelect"></select></label>
-          <label><span data-i18n="startDate">Start date</span><input id="rangeStart" type="text" inputmode="numeric" autocomplete="off"></label>
-          <label><span data-i18n="endDate">End date</span><input id="rangeEnd" type="text" inputmode="numeric" autocomplete="off"></label>
-          <label><span data-i18n="heatMetric">Route metric</span><select id="heatMetric"></select></label>
-        </div>
+          <div class="controls-grid">
+            <label><span data-i18n="point">Waypoint</span><select id="pointSelect"></select></label>
+            <label><span data-i18n="year">Reference year</span><select id="yearSelect"></select></label>
+            <label><span data-i18n="startDate">Start date</span><input id="rangeStart" type="text" inputmode="numeric" autocomplete="off"></label>
+            <label><span data-i18n="endDate">End date</span><input id="rangeEnd" type="text" inputmode="numeric" autocomplete="off"></label>
+            <label><span data-i18n="heatMetric">Route metric</span><select id="heatMetric"></select></label>
+          </div>
+        </section>
+
+        <aside class="analog-card" aria-label="Recommended reference year">
+          <div class="analog-head">
+            <div>
+              <h2 data-i18n="analogTitle">Recommended reference year</h2>
+              <p data-i18n="analogHint">2026 latest route-season signal compared with historical reference years.</p>
+            </div>
+            <i data-lucide="sparkles"></i>
+          </div>
+          <div id="analogTopList" class="analog-list"></div>
+          <div class="analog-meta">
+            <div><span data-i18n="confidence">Confidence</span><strong id="analogConfidence">n/a</strong></div>
+            <div><span data-i18n="forecast7d">7-day forecast</span><strong id="forecastSummary">n/a</strong></div>
+          </div>
+          <p class="analog-reason"><strong data-i18n="reason">Reason</strong>: <span id="analogReason">n/a</span></p>
+          <p class="analog-caveat"><strong data-i18n="caveat">Caveat</strong>: <span id="analogCaveat">n/a</span></p>
+        </aside>
       </section>
 
       <section class="kpi-grid" id="kpiGrid"></section>
@@ -1163,11 +1182,11 @@ def build_html_modern(data: dict) -> str:
         <button id="downloadCsv"><i data-lucide="download"></i><span data-i18n="downloadCsv">Download CSV</span></button>
       </section>
 
-      <p class="source-note"><span data-i18n="sourceNote">Data source: Open-Meteo Historical Weather API. Sampling points are weather-analysis approximations, not navigation-grade GPX points. Always check current mountain forecasts and local safety notices before hiking.</span> <a href="https://open-meteo.com/en/docs/historical-weather-api?locale=en">Open-Meteo docs</a></p>
+      <p class="source-note"><span data-i18n="sourceNote">Data source: Open-Meteo Historical Weather and Forecast APIs. Sampling points are weather-analysis approximations, not navigation-grade GPX points. Always check current mountain forecasts and local safety notices before hiking.</span> <a href="https://open-meteo.com/en/docs/historical-weather-api?locale=en">Open-Meteo docs</a></p>
     </main>
   </div>
 
-  <script src="assets/dashboard.js?v=20260526-date-input"></script>
+  <script src="assets/dashboard.js?v=20260526-forecast-analog"></script>
 </body>
 </html>
 """
@@ -1221,6 +1240,16 @@ def main() -> None:
         "weather_classes": derive_weather_classes(series_by_point),
         "series": series_by_point,
     }
+    existing_path = DATA_DIR / "tmb_weather_analytics_2022_2025.json"
+    if existing_path.exists():
+        existing = json.loads(existing_path.read_text(encoding="utf-8"))
+        for key in ("forecast_7d", "analog_reference"):
+            if key in existing:
+                data[key] = existing[key]
+        if existing.get("metadata", {}).get("forecast_updated_at"):
+            data["metadata"]["forecast_updated_at"] = existing["metadata"]["forecast_updated_at"]
+        if existing.get("metadata", {}).get("forecast_source_docs"):
+            data["metadata"]["forecast_source_docs"] = existing["metadata"]["forecast_source_docs"]
     (DATA_DIR / "tmb_open_meteo_hourly_2022_2025_jun_jul.csv").write_text(
         flatten_csv(series_by_point), encoding="utf-8"
     )

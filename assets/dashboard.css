@@ -121,6 +121,7 @@ h1 {
 }
 
 .control-panel,
+.analog-card,
 .panel,
 .download-strip {
   border: 1px solid var(--line);
@@ -130,9 +131,16 @@ h1 {
   backdrop-filter: blur(18px);
 }
 
+.control-analog-layout {
+  display: grid;
+  grid-template-columns: minmax(620px, 1.55fr) minmax(320px, 0.75fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+
 .control-panel {
   padding: 16px;
-  margin-bottom: 16px;
 }
 
 .control-title {
@@ -148,6 +156,7 @@ h1 {
 }
 
 .control-title h2,
+.analog-card h2,
 .panel h2,
 .download-strip h2 {
   margin: 0;
@@ -156,12 +165,97 @@ h1 {
 }
 
 .control-title p,
+.analog-card p,
 .panel p,
 .download-strip p {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
+}
+
+.analog-card {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.analog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.analog-head svg {
+  color: var(--amber);
+  flex: 0 0 auto;
+}
+
+.analog-list {
+  display: grid;
+  gap: 8px;
+}
+
+.analog-rank {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  background: rgba(5, 12, 18, 0.42);
+}
+
+.analog-rank span,
+.analog-rank em,
+.analog-meta span {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.analog-rank strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.analog-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.analog-meta div {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(36, 211, 154, 0.08);
+  border: 1px solid rgba(36, 211, 154, 0.16);
+}
+
+.analog-meta strong {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.analog-reason,
+.analog-caveat {
+  line-height: 1.5;
+}
+
+.analog-caveat {
+  color: var(--faint) !important;
+}
+
+.analog-empty {
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 16px;
 }
 
 .controls-grid {
@@ -399,6 +493,7 @@ th {
   }
 
   .controls-grid,
+  .control-analog-layout,
   .top-layout,
   .split-layout {
     grid-template-columns: 1fr;
@@ -420,8 +515,14 @@ th {
   }
 
   .panel,
-  .control-panel {
+  .control-panel,
+  .analog-card {
     padding: 12px;
+  }
+
+  .analog-rank,
+  .analog-meta {
+    grid-template-columns: 1fr;
   }
 
   .panel-head {
