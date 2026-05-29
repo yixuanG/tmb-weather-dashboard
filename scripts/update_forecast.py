@@ -145,6 +145,34 @@ def slim_forecast_payload(payload: dict) -> dict:
     }
 
 
+def merge_time_payload(existing: dict | None, latest: dict) -> dict:
+    if not existing:
+        return latest
+
+    merged = dict(latest)
+    merged["data_status"] = "observed_to_date_plus_rolling_7d_forecast_accumulated"
+
+    for section in ("hourly", "daily"):
+        existing_section = existing.get(section, {})
+        latest_section = latest.get(section, {})
+        time_key = "time"
+        all_times = sorted(set(existing_section.get(time_key, [])) | set(latest_section.get(time_key, [])))
+        keys = sorted((set(existing_section) | set(latest_section)) - {time_key})
+        merged_section = {time_key: all_times}
+
+        for key in keys:
+            values_by_time = {}
+            for source in (existing_section, latest_section):
+                times = source.get(time_key, [])
+                values_for_key = source.get(key, [])
+                for index, stamp in enumerate(times):
+                    values_by_time[stamp] = values_for_key[index] if index < len(values_for_key) else None
+            merged_section[key] = [values_by_time.get(stamp) for stamp in all_times]
+        merged[section] = merged_section
+
+    return merged
+
+
 def summarize_point_year(point: dict, year: int, payload: dict) -> dict:
     hourly = payload["hourly"]
     daily = payload["daily"]
@@ -492,8 +520,10 @@ def build_updates(data: dict, point_payloads: dict[str, dict], generated_at: str
     per_point = {}
     for point in data["points"]:
         forecast_payload = slim_forecast_payload(point_payloads[point["id"]])
-        data["series"].setdefault(point["id"], {})[str(ANALOG_YEAR)] = forecast_payload
-        rows = point_day_features(point["id"], point, forecast_payload)
+        existing_payload = data["series"].setdefault(point["id"], {}).get(str(ANALOG_YEAR))
+        merged_payload = merge_time_payload(existing_payload, forecast_payload)
+        data["series"][point["id"]][str(ANALOG_YEAR)] = merged_payload
+        rows = point_day_features(point["id"], point, merged_payload)
         all_rows.extend(rows)
         future = rows[-FORECAST_DAYS:]
         future_rows.extend(future)
@@ -565,14 +595,16 @@ def main() -> None:
 
     for index, point in enumerate(data["points"], start=1):
         cache_path = RAW_FORECAST_DIR / f"open_meteo_forecast_{point['id']}.json"
-        if cache_path.exists():
-            payload = json.loads(cache_path.read_text(encoding="utf-8"))
-            print(f"Using cached forecast {index:02d}/{len(data['points'])}: {point['name']}")
-        else:
+        try:
             print(f"Fetching forecast {index:02d}/{len(data['points'])}: {point['name']}")
             payload = fetch_point_forecast(point)
             cache_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
             time.sleep(0.25)
+        except Exception:
+            if not cache_path.exists():
+                raise
+            payload = json.loads(cache_path.read_text(encoding="utf-8"))
+            print(f"Using cached forecast {index:02d}/{len(data['points'])}: {point['name']}")
         point_payloads[point["id"]] = payload
 
     updates = build_updates(data, point_payloads, generated_at)
